@@ -123,23 +123,51 @@ async function executeTool(
     };
   }
 
-  if (name === "fob_summary") {
-    const { start_date, end_date } = input;
-    const { data, error } = await supabase.rpc("fob_summary", {
+  if (name === "get_end_to_end_shipments") {
+    const { start_date, end_date, kapal, pemasok } = input;
+    const { data, error } = await supabase.rpc("get_end_to_end_shipments", {
       p_start_date: start_date,
       p_end_date: end_date,
+      p_kapal: kapal,
+      p_pemasok: pemasok,
     });
     if (error) {
-      console.error("[fob_summary] Supabase error:", error);
+      console.error("[get_end_to_end_shipments] Supabase error:", error);
       throw new Error(error.message);
     }
     return data;
   }
 
-  if (name === "cif_summary") {
+  if (name === "get_vessel_performance") {
+    const { start_date, end_date, kapal } = input;
+
+    const { data, error } = await supabase.rpc("get_vessel_performance", {
+      p_start_date: start_date,
+      p_end_date: end_date,
+      p_kapal: kapal,
+    });
+
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
+  if (name === "get_volume_loss") {
+    const { start_date, end_date, threshold } = input;
+
+    const { data, error } = await supabase.rpc("get_volume_loss", {
+      p_start_date: start_date,
+      p_end_date: end_date,
+      p_threshold: threshold,
+    });
+
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
+  if (name === "get_bottleneck_analysis") {
     const { start_date, end_date } = input;
 
-    const { data, error } = await supabase.rpc("cif_summary", {
+    const { data, error } = await supabase.rpc("get_bottleneck_analysis", {
       p_start_date: start_date,
       p_end_date: end_date,
     });
@@ -148,12 +176,13 @@ async function executeTool(
     return data;
   }
 
-  if (name === "trans_summary") {
-    const { start_date, end_date } = input;
+  if (name === "get_pricing_integrity") {
+    const { start_date, end_date, min_gcv } = input;
 
-    const { data, error } = await supabase.rpc("trans_summary", {
+    const { data, error } = await supabase.rpc("get_pricing_integrity", {
       p_start_date: start_date,
       p_end_date: end_date,
+      p_min_gcv: min_gcv,
     });
 
     if (error) throw new Error(error.message);
