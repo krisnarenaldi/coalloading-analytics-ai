@@ -8,7 +8,18 @@ import {
 } from "ai";
 import { createClient } from "@/utils/supabase/client";
 import { useEffect, useState, useRef } from "react";
-import { LogOut, Send, Bot, User, Sparkles, AlertCircle } from "lucide-react";
+import {
+  LogOut,
+  Send,
+  Bot,
+  User,
+  Sparkles,
+  AlertCircle,
+  Copy,
+  Check,
+  Download,
+} from "lucide-react";
+import * as XLSX from "xlsx";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
@@ -48,6 +59,102 @@ type ChartConfig = {
   x_key: string;
   y_key: string;
 };
+
+// ── Export & Copy helpers ────────────────────────────────────────────────────
+
+type RawPart = {
+  type: string;
+  text?: string;
+  state?: string;
+  output?: unknown;
+  toolName?: string;
+};
+
+function extractText(parts: RawPart[]): string {
+  return parts
+    .filter((p) => p.type === "text")
+    .map((p) => p.text ?? "")
+    .join("");
+}
+
+function findExportableData(
+  parts: RawPart[],
+): { toolName: string; data: Record<string, unknown>[] } | null {
+  for (const p of parts) {
+    if (
+      p.type === "dynamic-tool" &&
+      p.state === "output-available" &&
+      p.toolName !== "generate_chart_config" &&
+      Array.isArray(p.output) &&
+      (p.output as unknown[]).length > 0
+    ) {
+      return {
+        toolName: p.toolName!,
+        data: p.output as Record<string, unknown>[],
+      };
+    }
+  }
+  return null;
+}
+
+function AssistantActions({ parts }: { parts: RawPart[] }) {
+  const [copied, setCopied] = useState(false);
+
+  const text = extractText(parts);
+  const exportable = findExportableData(parts);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* clipboard not available */
+    }
+  };
+
+  const handleExport = () => {
+    if (!exportable) return;
+    const ws = XLSX.utils.json_to_sheet(exportable.data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Data");
+    const filename = `${exportable.toolName}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    XLSX.writeFile(wb, filename);
+  };
+
+  if (!text && !exportable) return null;
+
+  return (
+    <div className="not-prose flex items-center gap-1 mt-3 pt-2 border-t border-gray-100">
+      {text && (
+        <button
+          onClick={handleCopy}
+          title="Copy response"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-gray-400 rounded-lg hover:bg-gray-100 hover:text-gray-600 transition-colors"
+        >
+          {copied ? (
+            <Check className="h-3.5 w-3.5 text-green-500" />
+          ) : (
+            <Copy className="h-3.5 w-3.5" />
+          )}
+          <span>{copied ? "Copied!" : "Copy"}</span>
+        </button>
+      )}
+      {exportable && (
+        <button
+          onClick={handleExport}
+          title="Export to Excel"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-gray-400 rounded-lg hover:bg-[#00aff0]/10 hover:text-[#00aff0] transition-colors"
+        >
+          <Download className="h-3.5 w-3.5" />
+          <span>Export Excel</span>
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────────
 
 function RetailChart({ config }: { config: ChartConfig }) {
   const { chart_type, data, title, x_key, y_key } = config;
@@ -342,6 +449,7 @@ export default function Chat() {
                               config={p.output.chart_config}
                             />
                           ))}
+                        <AssistantActions parts={m.parts as RawPart[]} />
                       </>
                     )}
                   </div>
