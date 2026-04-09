@@ -380,20 +380,17 @@ export default function Chat() {
                       </div>
                     )}
                   </div>
-                  <div
-                    className={`max-w-none text-[15px] leading-relaxed ${
-                      m.role === "user"
-                        ? "whitespace-pre-wrap bg-white px-5 py-3.5 rounded-2xl rounded-tr-sm text-gray-800 shadow-sm border border-gray-100"
-                        : "text-gray-800 pt-1 prose prose-sm prose-gray max-w-none"
-                    }`}
-                  >
-                    {m.role === "user" ? (
-                      m.parts
+                  {m.role === "user" ? (
+                    <div className="whitespace-pre-wrap bg-white px-5 py-3.5 rounded-2xl rounded-tr-sm text-gray-800 shadow-sm border border-gray-100 text-[15px] leading-relaxed">
+                      {m.parts
                         .filter((p): p is TextUIPart => p.type === "text")
                         .map((p) => p.text)
-                        .join("")
-                    ) : (
-                      <>
+                        .join("")}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-1">
+                      {/* prose container — action buttons must stay outside this div */}
+                      <div className="text-gray-800 pt-1 prose prose-sm prose-gray max-w-none text-[15px] leading-relaxed">
                         <ReactMarkdown
                           remarkPlugins={[remarkGfm]}
                           components={{
@@ -449,10 +446,11 @@ export default function Chat() {
                               config={p.output.chart_config}
                             />
                           ))}
-                        <AssistantActions parts={m.parts as RawPart[]} />
-                      </>
-                    )}
-                  </div>
+                      </div>
+                      {/* action buttons — outside prose to avoid typography style conflicts */}
+                      <AssistantActions parts={m.parts as RawPart[]} />
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
